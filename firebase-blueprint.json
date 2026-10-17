@@ -1,0 +1,85 @@
+{
+  "entities": {
+    "Challenge": {
+      "title": "Challenge",
+      "description": "Shared duo challenge configuration and member profiles",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 100 },
+        "startDate": { "type": "string", "maxLength": 30 },
+        "endDate": { "type": "string", "maxLength": 40 },
+        "grandPrize": { "type": "string", "maxLength": 200 },
+        "loserPenalty": { "type": "string", "maxLength": 200 },
+        "user1Uid": { "type": "string", "maxLength": 128 },
+        "user2Uid": { "type": "string", "maxLength": 128 },
+        "user1Name": { "type": "string", "maxLength": 60 },
+        "user2Name": { "type": "string", "maxLength": 60 },
+        "user1Email": { "type": "string", "maxLength": 100 },
+        "user2Email": { "type": "string", "maxLength": 100 },
+        "user1Avatar": { "type": "string", "maxLength": 300 },
+        "user2Avatar": { "type": "string", "maxLength": 300 }
+      },
+      "required": ["title", "startDate", "endDate", "grandPrize"]
+    },
+    "Habit": {
+      "title": "Habit",
+      "description": "Daily habit or task in the challenge",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 120 },
+        "description": { "type": "string", "maxLength": 300 },
+        "points": { "type": "number" },
+        "category": { "type": "string", "enum": ["health", "learning", "romance", "lifestyle"] },
+        "targetUser": { "type": "string", "maxLength": 20 },
+        "icon": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "maxLength": 30 }
+      },
+      "required": ["title", "points", "category", "targetUser", "icon"]
+    },
+    "Completion": {
+      "title": "Completion",
+      "description": "Log of completed habit for a specific date and participant",
+      "type": "object",
+      "properties": {
+        "habitId": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 20 },
+        "userUid": { "type": "string", "maxLength": 128 },
+        "date": { "type": "string", "maxLength": 10 },
+        "timestamp": { "type": "number" },
+        "pointsAwarded": { "type": "number" }
+      },
+      "required": ["habitId", "userId", "date", "timestamp", "pointsAwarded"]
+    },
+    "Reward": {
+      "title": "Reward",
+      "description": "Milestone reward coupon or romantic wager",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 150 },
+        "pointsRequired": { "type": "number" },
+        "claimedByUser1": { "type": "boolean" },
+        "claimedByUser2": { "type": "boolean" },
+        "icon": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["title", "pointsRequired", "claimedByUser1", "claimedByUser2", "icon"]
+    }
+  },
+  "firestore": {
+    "/challenges/{challengeId}": {
+      "schema": "Challenge",
+      "description": "Root challenge documents"
+    },
+    "/challenges/{challengeId}/habits/{habitId}": {
+      "schema": "Habit",
+      "description": "Habits collection under challenge"
+    },
+    "/challenges/{challengeId}/completions/{completionId}": {
+      "schema": "Completion",
+      "description": "Completions collection under challenge"
+    },
+    "/challenges/{challengeId}/rewards/{rewardId}": {
+      "schema": "Reward",
+      "description": "Milestone rewards collection under challenge"
+    }
+  }
+}

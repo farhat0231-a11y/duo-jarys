@@ -1,0 +1,87 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global catch-all default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isParticipant(challengeId) {
+      return isSignedIn() && (
+        request.auth.uid == get(/databases/$(database)/documents/challenges/$(challengeId)).data.user1Uid ||
+        request.auth.uid == get(/databases/$(database)/documents/challenges/$(challengeId)).data.user2Uid ||
+        get(/databases/$(database)/documents/challenges/$(challengeId)).data.user1Uid == null ||
+        get(/databases/$(database)/documents/challenges/$(challengeId)).data.user2Uid == null
+      );
+    }
+
+    // Challenges Collection
+    match /challenges/{challengeId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(challengeId) &&
+        incoming().title is string && incoming().title.size() <= 100 &&
+        incoming().startDate is string && incoming().startDate.size() <= 30 &&
+        incoming().endDate is string && incoming().endDate.size() <= 40 &&
+        incoming().grandPrize is string && incoming().grandPrize.size() <= 200;
+
+      allow update: if isSignedIn() && isValidId(challengeId) && (
+        // Allow updating challenge details or claiming user slot
+        incoming().title is string && incoming().title.size() <= 100 &&
+        incoming().endDate is string && incoming().endDate.size() <= 40
+      );
+      allow delete: if false;
+
+      // Habits Subcollection
+      match /habits/{habitId} {
+        allow get, list: if isSignedIn() && isValidId(challengeId);
+        allow create, update: if isSignedIn() && isValidId(challengeId) && isValidId(habitId) &&
+          incoming().title is string && incoming().title.size() <= 120 &&
+          incoming().points is number && incoming().points >= 1 && incoming().points <= 100 &&
+          incoming().category in ['health', 'learning', 'romance', 'lifestyle'] &&
+          incoming().targetUser in ['both', 'user1', 'user2'] &&
+          incoming().icon is string && incoming().icon.size() <= 50;
+        allow delete: if isSignedIn() && isValidId(challengeId) && isValidId(habitId);
+      }
+
+      // Completions Subcollection
+      match /completions/{completionId} {
+        allow get, list: if isSignedIn() && isValidId(challengeId);
+        allow create: if isSignedIn() && isValidId(challengeId) && isValidId(completionId) &&
+          incoming().habitId is string && incoming().habitId.size() <= 128 &&
+          incoming().userId in ['user1', 'user2'] &&
+          incoming().date is string && incoming().date.size() <= 10 &&
+          incoming().pointsAwarded is number;
+        allow delete: if isSignedIn() && isValidId(challengeId) && isValidId(completionId);
+        allow update: if false;
+      }
+
+      // Rewards Subcollection
+      match /rewards/{rewardId} {
+        allow get, list: if isSignedIn() && isValidId(challengeId);
+        allow create, update: if isSignedIn() && isValidId(challengeId) && isValidId(rewardId) &&
+          incoming().title is string && incoming().title.size() <= 150 &&
+          incoming().pointsRequired is number &&
+          incoming().claimedByUser1 is bool &&
+          incoming().claimedByUser2 is bool;
+        allow delete: if isSignedIn() && isValidId(challengeId) && isValidId(rewardId);
+      }
+    }
+  }
+}
